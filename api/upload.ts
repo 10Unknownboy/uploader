@@ -32,7 +32,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const repo = 'love-os-ogg';   // your main website repo
     const branch = 'main';        // your default branch
 
-    // Helper: get file SHA if exists (needed to update)
     async function getFileSha(path: string) {
       try {
         const { data } = await octokit.rest.repos.getContent({ owner, repo, path, ref: branch });
@@ -42,7 +41,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Commit/upload file contents
     async function commitFile(path: string, content: Buffer, message: string) {
       const base64Content = content.toString('base64');
       const sha = await getFileSha(path);
@@ -57,14 +55,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Process image files
+    // Fixed names for images matching main site's expectations
+    const expectedImageNames = [
+      "collage.jpg",
+      "memory1.jpg",
+      "memory2.jpg",
+      "memory3.jpg",
+      "memory4.jpg",
+      "memory5.jpg",
+      "memory6.jpg",
+    ];
+
     const images = (req.files as any).images || [];
-    for (const file of images) {
-      const path = `public/files/database/images/${file.originalname}`;
-      await commitFile(path, file.buffer, `Add/update image ${file.originalname}`);
+    for (let i = 0; i < images.length && i < expectedImageNames.length; i++) {
+      const path = `public/files/database/images/${expectedImageNames[i]}`;
+      await commitFile(path, images[i].buffer, `Add/update image ${expectedImageNames[i]}`);
     }
 
-    // Process song files
+    // Songs keep original filenames
     const songs = (req.files as any).songs || [];
     for (const file of songs) {
       const path = `public/files/database/songs/${file.originalname}`;
