@@ -29,8 +29,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const owner = '10Unknownboy'; // your GitHub username
-    const repo = 'uploader';
-    const branch = 'main'; // or your repo default branch
+    const repo = 'love-os-ogg';   // your main website repo
+    const branch = 'main';        // your default branch
 
     // Helper: get file SHA if exists (needed to update)
     async function getFileSha(path: string) {
@@ -60,14 +60,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Process image files
     const images = (req.files as any).images || [];
     for (const file of images) {
-      const path = `files/database/images/${file.originalname}`;
+      const path = `public/files/database/images/${file.originalname}`;
       await commitFile(path, file.buffer, `Add/update image ${file.originalname}`);
     }
 
     // Process song files
     const songs = (req.files as any).songs || [];
     for (const file of songs) {
-      const path = `files/database/songs/${file.originalname}`;
+      const path = `public/files/database/songs/${file.originalname}`;
       await commitFile(path, file.buffer, `Add/update song ${file.originalname}`);
     }
 
