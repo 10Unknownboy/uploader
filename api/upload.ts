@@ -73,7 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     res.status(200).json({ message: 'Files uploaded to GitHub successfully.' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to upload files' });
+    console.error('Upload error:', error);
+    res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
   }
 }
