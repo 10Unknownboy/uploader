@@ -32,6 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const repo = 'love-os-ogg';   // your main website repo
     const branch = 'main';        // your default branch
 
+    // Helper: get file SHA if exists (needed to update)
     async function getFileSha(path: string) {
       try {
         const { data } = await octokit.rest.repos.getContent({ owner, repo, path, ref: branch });
@@ -41,6 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // Commit/upload file contents
     async function commitFile(path: string, content: Buffer, message: string) {
       const base64Content = content.toString('base64');
       const sha = await getFileSha(path);
@@ -55,7 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Fixed names for images matching main site's expectations
+    // Expected image filenames
     const expectedImageNames = [
       "collage.jpg",
       "memory1.jpg",
@@ -72,11 +74,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await commitFile(path, images[i].buffer, `Add/update image ${expectedImageNames[i]}`);
     }
 
-    // Songs keep original filenames
+    // Expected song filenames
+    const expectedSongNames = [
+      "song1.mp3",
+      "song2.mp3",
+      "song3.mp3",
+      "song4.mp3",
+      "song5.mp3",
+      "song6.mp3",
+    ];
+
     const songs = (req.files as any).songs || [];
-    for (const file of songs) {
-      const path = `public/files/database/songs/${file.originalname}`;
-      await commitFile(path, file.buffer, `Add/update song ${file.originalname}`);
+    for (let i = 0; i < songs.length && i < expectedSongNames.length; i++) {
+      const path = `public/files/database/songs/${expectedSongNames[i]}`;
+      await commitFile(path, songs[i].buffer, `Add/update song ${expectedSongNames[i]}`);
     }
 
     res.status(200).json({ message: 'Files uploaded to GitHub successfully.' });
