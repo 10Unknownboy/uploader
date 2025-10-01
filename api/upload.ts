@@ -28,8 +28,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   await runMiddleware(req, res, upload.fields([{ name: 'images' }, { name: 'songs' }]));
 
   try {
-    const owner = 'your-github-username';
-    const repo = 'your-main-website-repo';
+    const owner = '10Unknownboy'; // your GitHub username
+    const repo = 'uploader';
     const branch = 'main'; // or your repo default branch
 
     // Helper: get file SHA if exists (needed to update)
