@@ -1,15 +1,35 @@
 import React, { useState } from 'react';
 
+// Stats tiles titles - max 12
+const statsTileTitles = [
+  "Days Together",
+  "Relationship Started",
+  "First Date",
+  "First Kiss",
+  "First Hug",
+  "Best Day",
+  "Most Used Word",
+  "Total Messages",
+  "Her Words",
+  "His Words",
+  "Reels Shared",
+  "Love Count"
+];
+
 export default function Uploader() {
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [songFiles, setSongFiles] = useState<File[]>([]);
   const [uploadStatus, setUploadStatus] = useState('');
   const [uploading, setUploading] = useState(false);
 
-  // State for song titles and artists (6 each)
+  // Existing state for song titles/artists
   const [songTitles, setSongTitles] = useState<string[]>(Array(6).fill(''));
   const [songArtists, setSongArtists] = useState<string[]>(Array(6).fill(''));
 
+  // New state for stats tiles values (12)
+  const [statsValues, setStatsValues] = useState<string[]>(Array(12).fill(''));
+
+  // Existing handlers for files and song text fields...
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'song') => {
     if (!e.target.files) return;
     const filesArray = Array.from(e.target.files);
@@ -33,14 +53,26 @@ export default function Uploader() {
     });
   };
 
+  // New handler for stats values changes
+  const handleStatValueChange = (index: number, value: string) => {
+    setStatsValues(prev => {
+      const newValues = [...prev];
+      newValues[index] = value;
+      return newValues;
+    });
+  };
+
   const handleUpload = async () => {
     setUploading(true);
     setUploadStatus('Uploading...');
     const formData = new FormData();
+
     imageFiles.forEach(f => formData.append('images', f));
     songFiles.forEach(f => formData.append('songs', f));
+
     formData.append('songTitles', JSON.stringify(songTitles));
     formData.append('songArtists', JSON.stringify(songArtists));
+    formData.append('statsValues', JSON.stringify(statsValues));
 
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
@@ -50,6 +82,7 @@ export default function Uploader() {
         setSongFiles([]);
         setSongTitles(Array(6).fill(''));
         setSongArtists(Array(6).fill(''));
+        setStatsValues(Array(12).fill(''));
       } else {
         const error = await res.json();
         setUploadStatus(`Upload failed: ${error?.error || 'Unknown error'}`);
@@ -114,6 +147,21 @@ export default function Uploader() {
             placeholder={`Song ${idx + 1} Artist`}
             value={songArtists[idx]}
             onChange={e => handleArtistChange(idx, e.target.value)}
+            disabled={uploading}
+          />
+        </div>
+      ))}
+
+      <h3 className="font-bold mb-2 mt-6">Stats Tiles Values</h3>
+      {statsTileTitles.map((title, idx) => (
+        <div key={idx} className="mb-3">
+          <label className="block mb-1 font-semibold">{title}</label>
+          <input
+            className="border p-2 rounded w-full"
+            type="text"
+            placeholder={`Enter value for ${title}`}
+            value={statsValues[idx]}
+            onChange={e => handleStatValueChange(idx, e.target.value)}
             disabled={uploading}
           />
         </div>
