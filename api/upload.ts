@@ -1,15 +1,13 @@
-import { VercelRequest, VercelResponse } from '@vercel/node'; // Types for Vercel functions
-import { Octokit } from 'octokit'; // GitHub REST API client
-import multer from 'multer'; // To parse multipart form-data (file uploads)
+import { VercelRequest, VercelResponse } from '@vercel/node';
+import { Octokit } from 'octokit';
+import multer from 'multer';
 
-// Multer memory storage allows uploading files into memory buffers instead of disk
+// Multer memory storage for file uploads
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Instantiates GitHub API client with a PAT from environment variables
 const octokit = new Octokit({ auth: process.env.GITHUB_PAT });
 
-// Helper function to wrap multer middleware (upload handler) in a Promise
 function runMiddleware(req: any, res: any, fn: any) {
   return new Promise((resolve, reject) => {
     fn(req, res, (result: any) => {
@@ -24,9 +22,7 @@ function runMiddleware(req: any, res: any, fn: any) {
   });
 }
 
-// Main API handler (serverless function)
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Only accept POST requests to upload files
   if (req.method !== 'POST') {
     console.warn(`Invalid request method: ${req.method}`);
     res.status(405).send('Method Not Allowed');
@@ -34,19 +30,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // Use multer to parse 'images' and 'songs' fields
     await runMiddleware(req, res, upload.fields([{ name: 'images' }, { name: 'songs' }]));
     console.log('Files parsed by multer:', {
       images: req.files?.images?.length || 0,
       songs: req.files?.songs?.length || 0,
     });
 
-    // GitHub repo and branch config
-    const owner = '10Unknownboy'; // Your GitHub username/org
-    const repo = 'love-os-ogg';   // Repo where media lives
-    const branch = 'main';        // Branch to commit to
+    const owner = '10Unknownboy';
+    const repo = 'love-os-ogg';
+    const branch = 'main';
 
-    // Helper: checks if a file exists on GitHub and returns its SHA (required to update existing files)
     async function getFileSha(path: string) {
       try {
         const { data } = await octokit.rest.repos.getContent({ owner, repo, path, ref: branch });
@@ -58,10 +51,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Helper: commits a file to GitHub repo at 'path' with base64 content and commit message
-    async function commitFile(path: string, content: Buffer, message: string) {
+    async function commitFile(path: string, content: Buffer | string, message: string) {
       try {
-        const base64Content = content.toString('base64');
+        const base64Content = typeof content === 'string'
+          ? Buffer.from(content).toString('base64')
+          : content.toString('base64');
         const sha = await getFileSha(path);
         await octokit.rest.repos.createOrUpdateFileContents({
           owner,
@@ -69,7 +63,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           path,
           message,
           content: base64Content,
-          sha: sha || undefined, // undefined means create new file
+          sha: sha || undefined,
           branch,
         });
         console.log(`Committed file ${path}`);
@@ -79,7 +73,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Expected filenames for images
     const expectedImageNames = [
       "collage.jpg",
       "memory1.jpg",
@@ -90,7 +83,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       "memory6.jpg",
     ];
 
-    // Process image files
+    const songTitles = req.body.songTitles ? JSON.parse(req.body.songTitles) : [];
+    const songArtists = req.body.songArtists ? JSON.parse(req.body.songArtists) : [];
+    console.log('Parsed song titles:', songTitles);
+    console.log('Parsed song artists:', songArtists);
+
+    // Save metadata.json to src/components folder
+    const songMetadata = expectedImageNames.map((_, idx) => ({
+      title: songTitles[idx] || '',
+      artist: songArtists[idx] || '',
+      filename: `song${idx + 1}.mp3`,
+    }));
+
+    const metadataPath = 'src/components/metadata.json';
+    console.log('Committing song metadata file to:', metadataPath);
+    await commitFile(metadataPath, JSON.stringify(songMetadata, null, 2), 'Update song metadata');
+
     const images = (req.files as any).images || [];
     console.log(`Processing ${images.length} images`);
     for (let i = 0; i < images.length && i < expectedImageNames.length; i++) {
@@ -99,7 +107,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await commitFile(path, images[i].buffer, `Add/update image ${expectedImageNames[i]}`);
     }
 
-    // Expected filenames for songs
     const expectedSongNames = [
       "song1.mp3",
       "song2.mp3",
@@ -109,7 +116,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       "song6.mp3",
     ];
 
-    // Process song files
     const songs = (req.files as any).songs || [];
     console.log(`Processing ${songs.length} songs`);
     for (let i = 0; i < songs.length && i < expectedSongNames.length; i++) {
@@ -118,12 +124,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await commitFile(path, songs[i].buffer, `Add/update song ${expectedSongNames[i]}`);
     }
 
-    // Successful upload response
-    console.log('All files uploaded successfully');
-    res.status(200).json({ message: 'Files uploaded to GitHub successfully.' });
+    console.log('All files and metadata uploaded successfully');
+    res.status(200).json({ message: 'Files and metadata uploaded to GitHub successfully.' });
 
   } catch (error) {
-    // Log error and respond with helpful error message
     console.error('Upload error:', error);
     res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
   }
