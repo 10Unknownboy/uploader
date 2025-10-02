@@ -2,10 +2,8 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { Octokit } from 'octokit';
 import multer from 'multer';
 
-// Multer memory storage for file uploads
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
-
 const octokit = new Octokit({ auth: process.env.GITHUB_PAT });
 
 function runMiddleware(req: any, res: any, fn: any) {
@@ -88,14 +86,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log('Parsed song titles:', songTitles);
     console.log('Parsed song artists:', songArtists);
 
-    // Save metadata.json to src/components folder
+    // Save metadata.json to public/files/database folder for frontend access
     const songMetadata = expectedImageNames.map((_, idx) => ({
       title: songTitles[idx] || '',
       artist: songArtists[idx] || '',
       filename: `song${idx + 1}.mp3`,
     }));
 
-    const metadataPath = 'src/components/metadata.json';
+    const metadataPath = 'public/files/database/metadata.json';
     console.log('Committing song metadata file to:', metadataPath);
     await commitFile(metadataPath, JSON.stringify(songMetadata, null, 2), 'Update song metadata');
 
