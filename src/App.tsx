@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 
-// Stats tiles titles - max 12
-const statsTileTitles = [
-  "Days Together",
-  "Relationship Started",
-  "First Date",
-  "First Kiss",
-  "First Hug",
-  "Best Day",
-  "Most Used Word",
-  "Total Messages",
-  "Her Words",
-  "His Words",
-  "Reels Shared",
-  "Love Count"
+// Stats tiles meta including types associated with titles
+const statsTileMeta = [
+  { title: "Days Together", type: "counter" },
+  { title: "Relationship Started", type: "date" },
+  { title: "First Date", type: "date" },
+  { title: "First Kiss", type: "location" },
+  { title: "First Hug", type: "location" },
+  { title: "Best Day", type: "date" },
+  { title: "Most Used Word", type: "text" },
+  { title: "Total Messages", type: "progress" },
+  { title: "Her Words", type: "progress" },
+  { title: "His Words", type: "progress" },
+  { title: "Reels Shared", type: "progress" },
+  { title: "Love Count", type: "progress" }
 ];
 
 export default function Uploader() {
@@ -22,44 +22,32 @@ export default function Uploader() {
   const [uploadStatus, setUploadStatus] = useState('');
   const [uploading, setUploading] = useState(false);
 
-  // Existing state for song titles/artists
   const [songTitles, setSongTitles] = useState<string[]>(Array(6).fill(''));
   const [songArtists, setSongArtists] = useState<string[]>(Array(6).fill(''));
+  const [statsValues, setStatsValues] = useState<string[]>(Array(statsTileMeta.length).fill(''));
 
-  // New state for stats tiles values (12)
-  const [statsValues, setStatsValues] = useState<string[]>(Array(12).fill(''));
-
-  // Existing handlers for files and song text fields...
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'song') => {
     if (!e.target.files) return;
     const filesArray = Array.from(e.target.files);
-    if (type === 'image') setImageFiles(filesArray);
-    else setSongFiles(filesArray);
+    type === 'image' ? setImageFiles(filesArray) : setSongFiles(filesArray);
   };
 
   const handleTitleChange = (index: number, value: string) => {
-    setSongTitles(prev => {
-      const newTitles = [...prev];
-      newTitles[index] = value;
-      return newTitles;
-    });
+    const newTitles = [...songTitles];
+    newTitles[index] = value;
+    setSongTitles(newTitles);
   };
 
   const handleArtistChange = (index: number, value: string) => {
-    setSongArtists(prev => {
-      const newArtists = [...prev];
-      newArtists[index] = value;
-      return newArtists;
-    });
+    const newArtists = [...songArtists];
+    newArtists[index] = value;
+    setSongArtists(newArtists);
   };
 
-  // New handler for stats values changes
   const handleStatValueChange = (index: number, value: string) => {
-    setStatsValues(prev => {
-      const newValues = [...prev];
-      newValues[index] = value;
-      return newValues;
-    });
+    const newValues = [...statsValues];
+    newValues[index] = value;
+    setStatsValues(newValues);
   };
 
   const handleUpload = async () => {
@@ -69,7 +57,6 @@ export default function Uploader() {
 
     imageFiles.forEach(f => formData.append('images', f));
     songFiles.forEach(f => formData.append('songs', f));
-
     formData.append('songTitles', JSON.stringify(songTitles));
     formData.append('songArtists', JSON.stringify(songArtists));
     formData.append('statsValues', JSON.stringify(statsValues));
@@ -82,16 +69,15 @@ export default function Uploader() {
         setSongFiles([]);
         setSongTitles(Array(6).fill(''));
         setSongArtists(Array(6).fill(''));
-        setStatsValues(Array(12).fill(''));
+        setStatsValues(Array(statsTileMeta.length).fill(''));
       } else {
         const error = await res.json();
         setUploadStatus(`Upload failed: ${error?.error || 'Unknown error'}`);
       }
     } catch (err) {
       setUploadStatus(`Upload failed: ${err instanceof Error ? err.message : String(err)}`);
-    } finally {
-      setUploading(false);
     }
+    setUploading(false);
   };
 
   return (
@@ -153,13 +139,13 @@ export default function Uploader() {
       ))}
 
       <h3 className="font-bold mb-2 mt-6">Stats Tiles Values</h3>
-      {statsTileTitles.map((title, idx) => (
+      {statsTileMeta.map(({ title, type }, idx) => (
         <div key={idx} className="mb-3">
           <label className="block mb-1 font-semibold">{title}</label>
           <input
             className="border p-2 rounded w-full"
             type="text"
-            placeholder={`Enter value for ${title}`}
+            placeholder={`Type: ${type}`}
             value={statsValues[idx]}
             onChange={e => handleStatValueChange(idx, e.target.value)}
             disabled={uploading}
